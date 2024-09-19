@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Galeas\Api\Common\Controller;
 
 use Galeas\Api\Common\Event\EventDeserializer;
+use Galeas\Api\Common\Event\Exception\FoundBadJsonInProjectionOrReaction;
 use Galeas\Api\Common\Event\SerializedEvent;
 use Galeas\Api\Common\ExceptionBase\BaseException;
 use Galeas\Api\Service\Logger\PhpOutLogger;
@@ -117,17 +118,18 @@ class ProjectionReactionController extends AbstractController
      */
     private function requestJsonToRequestArray(Request $request): array
     {
-        $contentType = $request->headers->get('content-type');
-
-        if (!is_string($contentType)) {
-            throw new InvalidContentType();
-        }
-        if (
-            is_string($contentType) &&
-            'application/json' !== substr($contentType, 0, 16)
-        ) {
-            throw new InvalidContentType();
-        }
+        // No need for content type enforcement - to fix on ambar side
+//        $contentType = $request->headers->get('content-type');
+//
+//        if (!is_string($contentType)) {
+//            throw new InvalidContentType();
+//        }
+//        if (
+//            is_string($contentType) &&
+//            'application/json' !== substr($contentType, 0, 16)
+//        ) {
+//            throw new InvalidContentType();
+//        }
 
         try {
             $content = $request->getContent();
@@ -144,6 +146,21 @@ class ProjectionReactionController extends AbstractController
             }
         }
 
-        return $requestArray;
+        if (
+            array_key_exists("data_source_id", $requestArray) &&
+            array_key_exists("data_source_description", $requestArray) &&
+            array_key_exists("data_destination_id", $requestArray) &&
+            array_key_exists("data_destination_id", $requestArray) &&
+            array_key_exists("payload", $requestArray) &&
+            $requestArray["data_source_id"] !== null &&
+            $requestArray["data_source_description"] !== null &&
+            $requestArray["data_destination_id"] !== null &&
+            $requestArray["data_destination_description"] !== null &&
+            $requestArray["payload"] !== null
+        ) {
+            return $requestArray;
+        }
+
+        throw new FoundBadJsonInProjectionOrReaction();
     }
 }
